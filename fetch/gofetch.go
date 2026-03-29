@@ -3,10 +3,35 @@ package gofetch
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
 )
+
+func displayLine(title string, value string) {
+	red := "\033[38;5;161m"
+	reset := "\033[0m"
+	spaces := 10 - len(title)
+	printSpace := ""
+	for i := 0; i < spaces; i++ {
+		printSpace = printSpace + " "
+	}
+	fmt.Print(" ")
+	fmt.Print(red)
+	fmt.Print(title)
+	fmt.Print(printSpace)
+	fmt.Print(reset)
+	fmt.Print(" : ")
+	fmt.Print(value + "\n")
+}
+
+func getNameHostName() string {
+	name := os.Getenv("USER")
+	hostname_FILE, _ := os.ReadFile("/etc/hostname")
+	hostname := strings.Trim(string(hostname_FILE), "\n")
+	return name + "@" + hostname
+}
 
 func getDistroName() string {
 	osRelease, err := os.Open("/etc/os-release")
@@ -23,7 +48,62 @@ func getDistroName() string {
 			return name
 		}
 	}
-	return ""
+	return "No distro installed :("
+}
+
+func getIp() string {
+	addrs, _ := net.InterfaceAddrs()
+	addrs = append(addrs)
+	return "Placeholder"
+	//Use net library
+}
+
+func getKernelName() string {
+	data, err := os.ReadFile("/proc/version")
+	if err != nil {
+		return "Error opening /proc/version"
+	}
+	kernelVersion := strings.TrimSpace(string(data))
+	splitString := strings.Fields(kernelVersion)
+	final := splitString[0] + " " + splitString[1] + " " + splitString[2]
+	return final
+}
+
+func getUptime() string {
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return "Error opening /proc/uptime"
+	}
+	splitString := strings.Fields(string(data))
+	secondsOnly := strings.Split(splitString[0], ".")[0]
+	uptimeSeconds, err := strconv.ParseInt(secondsOnly, 10, 32)
+	uptimeMinutes := uptimeSeconds / 60
+	if uptimeMinutes > 1440 {
+		uptimeDays := uptimeMinutes / (60 * 24)
+		uptimeHours := (uptimeMinutes % (60 * 24)) / 60
+		return fmt.Sprintf("%d days, %d hrs", uptimeDays, uptimeHours)
+
+	}
+	if uptimeMinutes >= 60 {
+		uptimeHours := uptimeMinutes / 60
+		remainder := uptimeMinutes % 60
+		return fmt.Sprint(uptimeHours) + " hrs " + fmt.Sprint(remainder) + " min "
+	}
+	return fmt.Sprint(uptimeMinutes) + "min"
+}
+
+func getCPU() string {
+	cpu_FILE, _ := os.Open("/proc/cpuinfo")
+	defer cpu_FILE.Close()
+	scanner := bufio.NewScanner(cpu_FILE)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "model name") {
+			splitString := strings.SplitN(line, ": ", 2)
+			return string(splitString[1])
+		}
+	}
+	return "U don't have a cpu"
 }
 
 func getRam() string {
@@ -48,40 +128,27 @@ func getRam() string {
 		}
 	}
 	return fmt.Sprintf("%.2f GiB / %.2f GiB", memUsed, memTotal)
-
 }
 
-func getKernelName() string {
-	data, err := os.ReadFile("/proc/version")
-	if err != nil {
-		return "Error opening /proc/version"
-	}
-	kernelVersion := strings.TrimSpace(string(data))
-	splitString := strings.Fields(kernelVersion)
-	final := splitString[0] + " " + splitString[1] + " " + splitString[2]
-	return final
-}
-
-func getUptime() string {
-	data, err := os.ReadFile("/proc/uptime")
-	if err != nil {
-		return "Error opening /proc/uptime"
-	}
-	splitString := strings.Fields(string(data))
-	secondsOnly := strings.Split(splitString[0], ".")[0]
-	uptimeSeconds, err := strconv.ParseInt(secondsOnly, 10, 32)
-	uptimeMinutes := uptimeSeconds / 60
-	if uptimeMinutes >= 60 {
-		uptimeHours := uptimeMinutes / 60
-		remainder := uptimeMinutes % 60
-		return fmt.Sprint(uptimeHours) + "h " + fmt.Sprint(remainder) + "mns"
-	}
-	return fmt.Sprint(uptimeMinutes) + "mns"
+func getShell() string {
+	shell := os.Getenv("SHELL")
+	splitString := strings.Split(shell, "/")
+	return splitString[len(splitString)-1]
 }
 
 func Run() {
-	fmt.Println("OS : " + getDistroName())
-	fmt.Println("Kernel : " + getKernelName())
-	fmt.Println("Uptime : " + getUptime())
-	fmt.Println("Memory : " + getRam())
+	title := getNameHostName() + "       goFetch"
+	fmt.Printf("\n %s", title)
+	fmt.Println()
+	for i := 0; i < len(title)+1; i++ {
+		fmt.Print("-")
+	}
+	fmt.Println("\n")
+	displayLine("OS", getDistroName())
+	displayLine("Kernel", getKernelName())
+	displayLine("Shell", getShell())
+	displayLine("CPU", getCPU())
+	displayLine("Memory", getRam())
+	displayLine("Uptime", getUptime())
+	fmt.Println("")
 }
