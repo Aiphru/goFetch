@@ -82,7 +82,6 @@ func getUptime() string {
 		uptimeDays := uptimeMinutes / (60 * 24)
 		uptimeHours := (uptimeMinutes % (60 * 24)) / 60
 		return fmt.Sprintf("%d days, %d hrs", uptimeDays, uptimeHours)
-
 	}
 	if uptimeMinutes >= 60 {
 		uptimeHours := uptimeMinutes / 60
@@ -108,6 +107,7 @@ func getCPU() string {
 
 func getRam() string {
 	var memTotal, memFree, memUsed float64
+	var percentage int
 	replacer := strings.NewReplacer("MemTotal:", "", "MemFree:", "", "kB", "", " ", "")
 	memInfo_FILE, _ := os.Open("/proc/meminfo")
 	defer memInfo_FILE.Close()
@@ -124,10 +124,11 @@ func getRam() string {
 			memFree, _ = strconv.ParseFloat(memFreeString, 32)
 			memFree = memFree / 1024 / 1024
 			memUsed = memTotal - memFree
+			percentage = int(memUsed) * 100 / int(memTotal)
 			break
 		}
 	}
-	return fmt.Sprintf("%.2f GiB / %.2f GiB", memUsed, memTotal)
+	return fmt.Sprintf("%.2f GiB / %.2f GiB (\033[32m%d %%\033[0m)", memUsed, memTotal, percentage)
 }
 
 func getShell() string {
