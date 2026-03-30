@@ -110,6 +110,10 @@ func getCPU() string {
 }
 
 func getRam() string {
+	green := "\033[0;32m"
+	orange := "\033[38;5;208m"
+	red := "\033[0;31m"
+	reset := "\033[0m"
 	var memTotal, memFree, memUsed float64
 	var percentage int
 	replacer := strings.NewReplacer("MemTotal:", "", "MemFree:", "", "kB", "", " ", "")
@@ -132,7 +136,14 @@ func getRam() string {
 			break
 		}
 	}
-	return fmt.Sprintf("%.2f GiB / %.2f GiB (\033[32m%d%%\033[0m)", memUsed, memTotal, percentage)
+	if percentage < 50 {
+		return fmt.Sprintf("%.2f GiB / %.2f GiB (%s%d%%%s)", memUsed, memTotal, green, percentage, reset)
+	}
+	if percentage >= 50 && percentage < 75 {
+		return fmt.Sprintf("%.2f GiB / %.2f GiB (%s%d%%%s)", memUsed, memTotal, orange, percentage, reset)
+	}
+	return fmt.Sprintf("%.2f GiB / %.2f GiB (%s%d%%%s)", memUsed, memTotal, red, percentage, reset)
+
 }
 
 func getShell() string {
