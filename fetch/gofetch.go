@@ -33,7 +33,7 @@ func formatLine(title string, value string) string {
 	reset := "\033[0m"
 	spaces := 10 - len(title)
 	printSpace := ""
-	for i:= 0; i < spaces; i++ {
+	for i := 0; i < spaces; i++ {
 		printSpace = printSpace + " "
 	}
 	return " " + red + title + printSpace + reset + " : " + value
@@ -191,30 +191,29 @@ func getArchPackages() string {
 	return strconv.FormatInt(count-1, 10)
 }
 
-//AI placeholder, can't be bothered to test this.
+// AI placeholder, can't be bothered to test this.
 func getRPMPackages() string {
-    // We check if the RPM database exists first
-    if _, err := os.Stat("/var/lib/rpm/rpmdb.sqlite"); err == nil {
-        // Since it's a binary DB, we'll use a quick exec here 
-        // OR return "N/A" if you really want to avoid exec.
-        out, _ := exec.Command("rpm", "-qa").Output()
-        lines := strings.Split(string(out), "\n")
-        return strconv.Itoa(len(lines) - 1)
-    }
-    return ""
+	// We check if the RPM database exists first
+	if _, err := os.Stat("/var/lib/rpm/rpmdb.sqlite"); err == nil {
+		// Since it's a binary DB, we'll use a quick exec here
+		// OR return "N/A" if you really want to avoid exec.
+		out, _ := exec.Command("rpm", "-qa").Output()
+		lines := strings.Split(string(out), "\n")
+		return strconv.Itoa(len(lines) - 1)
+	}
+	return ""
 }
 
-
 func getPackages() string {
-	_ , err := os.Stat("/var/lib/dpkg/status")
+	_, err := os.Stat("/var/lib/dpkg/status")
 	if err == nil {
 		return getDebianPackages()
 	}
-	_, err := os.Stat("/var/lib/pacman")
+	_, err = os.Stat("/var/lib/pacman")
 	if err == nil {
 		return getArchPackages()
 	}
-	_, err := os.Stat("/var/lib/rpm/rpmdb.sqlite")
+	_, err = os.Stat("/var/lib/rpm/rpmdb.sqlite")
 	if err == nil {
 		return getRPMPackages()
 	}
@@ -236,41 +235,38 @@ func Run() {
 	start := time.Now()
 	ascii := getAsciiArt()
 	title := getNameHostName()
-	var info string[] = {
+	info := []string{
 		" " + title,
 		" " + strings.Repeat("-", len(title)),
-		formatLine()("OS", getDistroName()),
+		formatLine("OS", getDistroName()),
 		formatLine("Kernel", getKernelName()),
 		formatLine("Shell", getShell()),
-		//
 		formatLine("Packages", getPackages()),
 		formatLine("CPU", getCPU()),
 		formatLine("Memory", getRam()),
 		formatLine("Uptime", getUptime()),
 		formatLine("Network", getIp()),
-		formatLine("Locale", getLocale())
+		formatLine("Locale", getLocale()),
 	}
-
 	leftWidth := 35
 	maxLines := len(ascii)
 	if len(info) > maxLines {
 		maxLines = len(info)
 	}
-	fmt.Println()
 
+	fmt.Println()
 	for i := 0; i < maxLines; i++ {
 		left := ""
-		right := ""
-
 		if i < len(ascii) {
 			left = ascii[i]
 		}
+		right := ""
 		if i < len(info) {
 			right = info[i]
 		}
 		fmt.Printf("%-*s%s\n", leftWidth, left, right)
 	}
 	fmt.Println("")
-	duration:=time.Since(start)
-	fmt.Println("\n\n\nExecution time : " + duration)
+	duration := time.Since(start)
+	fmt.Printf("\n\nExecution time: %s\n", duration)
 }
