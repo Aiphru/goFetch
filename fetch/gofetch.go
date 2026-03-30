@@ -52,10 +52,14 @@ func getDistroName() string {
 }
 
 func getIp() string {
-	addrs, _ := net.InterfaceAddrs()
-	addrs = append(addrs)
-	return "Placeholder"
-	//Use net library
+	addresses, _ := net.InterfaceAddrs()
+	for _, address := range addresses {
+		ip := address.(*net.IPNet)
+		if !ip.IP.IsLoopback() {
+			return ip.String() //Come back and check for multiple interfaces and what happens if there's no interface available.
+		}
+	}
+	return "No network(?)"
 }
 
 func getKernelName() string {
@@ -128,7 +132,7 @@ func getRam() string {
 			break
 		}
 	}
-	return fmt.Sprintf("%.2f GiB / %.2f GiB (\033[32m%d %%\033[0m)", memUsed, memTotal, percentage)
+	return fmt.Sprintf("%.2f GiB / %.2f GiB (\033[32m%d%%\033[0m)", memUsed, memTotal, percentage)
 }
 
 func getShell() string {
@@ -151,5 +155,6 @@ func Run() {
 	displayLine("CPU", getCPU())
 	displayLine("Memory", getRam())
 	displayLine("Uptime", getUptime())
+	displayLine("Network", getIp())
 	fmt.Println("")
 }
