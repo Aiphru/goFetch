@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func displayLine(title string, value string) {
@@ -24,6 +26,17 @@ func displayLine(title string, value string) {
 	fmt.Print(reset)
 	fmt.Print(" : ")
 	fmt.Print(value + "\n")
+}
+
+func formatLine(title string, value string) string {
+	red := "\033[38;5;196m"
+	reset := "\033[0m"
+	spaces := 10 - len(title)
+	printSpace := ""
+	for i:= 0; i < spaces; i++ {
+		printSpace = printSpace + " "
+	}
+	return " " + red + title + printSpace + reset + " : " + value
 }
 
 func getNameHostName() string {
@@ -56,7 +69,9 @@ func getIp() string {
 	for _, address := range addresses {
 		ip := address.(*net.IPNet)
 		if !ip.IP.IsLoopback() {
-			return ip.String() //Come back and check for multiple interfaces and what happens if there's no interface available.
+			if ip.IP.To4() != nil {
+				return ip.IP.String()
+			} //Come back and check for multiple interfaces
 		}
 	}
 	return "No network(?)"
@@ -146,26 +161,116 @@ func getRam() string {
 
 }
 
+func getDebianPackages() string {
+	debian, err := os.Open("/var/lib/dpkg/status")
+	defer debian.Close()
+	if err != nil {
+		fmt.Println("Error opening debian file")
+	}
+	var count int64 = 0
+	scanner := bufio.NewScanner(debian)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "Package:") {
+			count++
+		}
+	}
+	return strconv.FormatInt(count, 10)
+}
+
+func getArchPackages() string {
+	dir, err := os.ReadDir("/var/lib/pacman")
+	if err != nil {
+		fmt.Println("Error opening pacman dir")
+	}
+	var count int64 = 0
+	for range dir {
+		count++
+	}
+	//Account for ALPM_DB_VERSION
+	return strconv.FormatInt(count-1, 10)
+}
+
+//AI placeholder, can't be bothered to test this.
+func getRPMPackages() string {
+    // We check if the RPM database exists first
+    if _, err := os.Stat("/var/lib/rpm/rpmdb.sqlite"); err == nil {
+        // Since it's a binary DB, we'll use a quick exec here 
+        // OR return "N/A" if you really want to avoid exec.
+        out, _ := exec.Command("rpm", "-qa").Output()
+        lines := strings.Split(string(out), "\n")
+        return strconv.Itoa(len(lines) - 1)
+    }
+    return ""
+}
+
+
+func getPackages() string {
+	_ , err := os.Stat("/var/lib/dpkg/status")
+	if err == nil {
+		return getDebianPackages()
+	}
+	_, err := os.Stat("/var/lib/pacman")
+	if err == nil {
+		return getArchPackages()
+	}
+	_, err := os.Stat("/var/lib/rpm/rpmdb.sqlite")
+	if err == nil {
+		return getRPMPackages()
+	}
+
+	return "Unknown"
+}
+
 func getShell() string {
 	shell := os.Getenv("SHELL")
 	splitString := strings.Split(shell, "/")
 	return splitString[len(splitString)-1]
 }
 
+func getLocale() string {
+	return os.Getenv("LANG")
+}
+
 func Run() {
-	title := getNameHostName() + "       goFetch"
-	fmt.Printf("\n %s", title)
-	fmt.Println()
-	for i := 0; i < len(title)+1; i++ {
-		fmt.Print("-")
+	start := time.Now()
+	ascii := getAsciiArt()
+	title := getNameHostName()
+	var info string[] = {
+		" " + title,
+		" " + strings.Repeat("-", len(title)),
+		formatLine()("OS", getDistroName()),
+		formatLine("Kernel", getKernelName()),
+		formatLine("Shell", getShell()),
+		//
+		formatLine("Packages", getPackages()),
+		formatLine("CPU", getCPU()),
+		formatLine("Memory", getRam()),
+		formatLine("Uptime", getUptime()),
+		formatLine("Network", getIp()),
+		formatLine("Locale", getLocale())
 	}
-	fmt.Println("\n")
-	displayLine("OS", getDistroName())
-	displayLine("Kernel", getKernelName())
-	displayLine("Shell", getShell())
-	displayLine("CPU", getCPU())
-	displayLine("Memory", getRam())
-	displayLine("Uptime", getUptime())
-	displayLine("Network", getIp())
+
+	leftWidth := 35
+	maxLines := len(ascii)
+	if len(info) > maxLines {
+		maxLines = len(info)
+	}
+	fmt.Println()
+
+	for i := 0; i < maxLines; i++ {
+		left := ""
+		right := ""
+
+		if i < len(ascii) {
+			left = ascii[i]
+		}
+		if i < len(info) {
+			right = info[i]
+		}
+		fmt.Printf("%-*s%s\n", leftWidth, left, right)
+	}
 	fmt.Println("")
+	duration:=time.Since(start)
+	fmt.Println("\n\n\nExecution time : " + duration)
 }
