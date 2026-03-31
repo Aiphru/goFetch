@@ -10,35 +10,6 @@ import (
 	"strings"
 )
 
-var red string = "\033[38;5;161m"
-var reset string = "\033[0m"
-var green string = "\033[0;32m"
-var orange string = "\033[38;5;208m"
-
-func displayLine(title string, value string) {
-	spaces := 10 - len(title)
-	printSpace := ""
-	for i := 0; i < spaces; i++ {
-		printSpace = printSpace + " "
-	}
-	fmt.Print(" ")
-	fmt.Print(red)
-	fmt.Print(title)
-	fmt.Print(printSpace)
-	fmt.Print(reset)
-	fmt.Print(" : ")
-	fmt.Print(value + "\n")
-}
-
-func formatLine(title string, value string) string {
-	spaces := 10 - len(title)
-	printSpace := ""
-	for i := 0; i < spaces; i++ {
-		printSpace = printSpace + " "
-	}
-	return " " + red + title + printSpace + reset + " : " + value
-}
-
 func getNameHostName() string {
 	name := os.Getenv("USER")
 	hostname_FILE, _ := os.ReadFile("/etc/hostname")
@@ -47,11 +18,22 @@ func getNameHostName() string {
 }
 
 func getDeviceName() string {
-	FILE, err := os.ReadFile("/sys/class/dmi/id/product_name")
-	if err != nil {
-		return "Error opening product_name file"
+	_, err := os.Stat("/sys/class/dmi/id/product_name")
+	if err == nil {
+		FILE, _ := os.ReadFile("/sys/class/dmi/id/product_name")
+		return strings.Trim(string(FILE), "\n")
 	}
-	return strings.Trim(string(FILE), "\n")
+	_, err = os.Stat("/sys/class/dmi/id/board_name")
+	if err == nil {
+		FILE, _ := os.ReadFile("sys/class/dmi/id/board_name")
+		return strings.Trim(string(FILE), "\n")
+	}
+	_, err = os.Stat("/proc/device-tree/model")
+	if err == nil {
+		FILE, _ := os.ReadFile("/proc/device-tree/model")
+		return strings.Trim(string(FILE), "\n")
+	}
+	return "WSL"
 
 }
 
@@ -147,7 +129,7 @@ func getRam() string {
 			memTotal, _ = strconv.ParseFloat(memTotalString, 32)
 			memTotal = memTotal / 1024 / 1024
 		}
-		if strings.HasPrefix(line, "MemFree:") {
+		if strings.HasPrefix(line, "MemAvailable:") {
 			memFreeString := replacer.Replace(line)
 			memFree, _ = strconv.ParseFloat(memFreeString, 32)
 			memFree = memFree / 1024 / 1024
@@ -184,7 +166,7 @@ func getDebianPackages() string {
 }
 
 func getArchPackages() string {
-	dir, err := os.ReadDir("/var/lib/pacman")
+	dir, err := os.ReadDir("/var/lib/pacman/local")
 	if err != nil {
 		fmt.Println("Error opening pacman dir")
 	}
@@ -196,7 +178,7 @@ func getArchPackages() string {
 	return strconv.FormatInt(count-1, 10)
 }
 
-// AI placeholder, can't be bothered to test this.
+// AI placeholder, can't be bothered to test this rn.
 func getRPMPackages() string {
 	// We check if the RPM database exists first
 	if _, err := os.Stat("/var/lib/rpm/rpmdb.sqlite"); err == nil {
@@ -234,43 +216,4 @@ func getShell() string {
 
 func getLocale() string {
 	return os.Getenv("LANG")
-}
-
-func Run() {
-	ascii := getAsciiArt()
-	title := getNameHostName()
-	info := []string{
-		" " + title,
-		" " + strings.Repeat("-", visibleLength(title)),
-		formatLine("OS", getDistroName()),
-		formatLine("Kernel", getKernelName()),
-		formatLine("Host", getDeviceName()),
-		formatLine("Shell", getShell()),
-		formatLine("Packages", getPackages()),
-		formatLine("CPU", getCPU()),
-		formatLine("Memory", getRam()),
-		formatLine("Uptime", getUptime()),
-		formatLine("Network", getIp()),
-		//formatLine("Locale", getLocale()),
-	}
-	infoLength := StringArrayMaxLength(info)
-	asciiLength := StringArrayMaxLength(ascii)
-	leftWidth := asciiLength + 15
-	if infoLength > asciiLength {
-		asciiLength = infoLength
-	}
-
-	fmt.Println()
-	for i := 0; i < len(ascii); i++ {
-		left := ""
-		if i < len(ascii) {
-			left = ascii[i]
-		}
-		right := ""
-		if i < len(ascii) {
-			right = info[i]
-		}
-		fmt.Printf("%-*s%s\n", leftWidth, left, right)
-	}
-	fmt.Println("")
 }
