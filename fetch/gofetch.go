@@ -11,9 +11,12 @@ import (
 	"time"
 )
 
+var red string = "\033[38;5;161m"
+var reset string = "\033[0m"
+var green string = "\033[0;32m"
+var orange string = "\033[38;5;208m"
+
 func displayLine(title string, value string) {
-	red := "\033[38;5;161m"
-	reset := "\033[0m"
 	spaces := 10 - len(title)
 	printSpace := ""
 	for i := 0; i < spaces; i++ {
@@ -29,8 +32,6 @@ func displayLine(title string, value string) {
 }
 
 func formatLine(title string, value string) string {
-	red := "\033[38;5;196m"
-	reset := "\033[0m"
 	spaces := 10 - len(title)
 	printSpace := ""
 	for i := 0; i < spaces; i++ {
@@ -43,7 +44,16 @@ func getNameHostName() string {
 	name := os.Getenv("USER")
 	hostname_FILE, _ := os.ReadFile("/etc/hostname")
 	hostname := strings.Trim(string(hostname_FILE), "\n")
-	return name + "@" + hostname
+	return red + name + reset + "@" + red + hostname
+}
+
+func getDeviceName() string {
+	FILE, err := os.ReadFile("/sys/class/dmi/id/product_name")
+	if err != nil {
+		return "Error opening product_name file"
+	}
+	return strings.Trim(string(FILE), "\n")
+
 }
 
 func getDistroName() string {
@@ -125,10 +135,6 @@ func getCPU() string {
 }
 
 func getRam() string {
-	green := "\033[0;32m"
-	orange := "\033[38;5;208m"
-	red := "\033[0;31m"
-	reset := "\033[0m"
 	var memTotal, memFree, memUsed float64
 	var percentage int
 	replacer := strings.NewReplacer("MemTotal:", "", "MemFree:", "", "kB", "", " ", "")
@@ -237,36 +243,38 @@ func Run() {
 	title := getNameHostName()
 	info := []string{
 		" " + title,
-		" " + strings.Repeat("-", len(title)),
+		" " + strings.Repeat("-", visibleLength(title)),
 		formatLine("OS", getDistroName()),
 		formatLine("Kernel", getKernelName()),
+		formatLine("Host", getDeviceName()),
 		formatLine("Shell", getShell()),
 		formatLine("Packages", getPackages()),
 		formatLine("CPU", getCPU()),
 		formatLine("Memory", getRam()),
 		formatLine("Uptime", getUptime()),
 		formatLine("Network", getIp()),
-		formatLine("Locale", getLocale()),
+		//formatLine("Locale", getLocale()),
 	}
-	leftWidth := 35
-	maxLines := len(ascii)
-	if len(info) > maxLines {
-		maxLines = len(info)
+	infoLength := StringArrayMaxLength(info)
+	asciiLength := StringArrayMaxLength(ascii)
+	leftWidth := asciiLength + 15
+	if infoLength > asciiLength {
+		asciiLength = infoLength
 	}
 
 	fmt.Println()
-	for i := 0; i < maxLines; i++ {
+	for i := 0; i < len(ascii); i++ {
 		left := ""
 		if i < len(ascii) {
 			left = ascii[i]
 		}
 		right := ""
-		if i < len(info) {
+		if i < len(ascii) {
 			right = info[i]
 		}
 		fmt.Printf("%-*s%s\n", leftWidth, left, right)
 	}
 	fmt.Println("")
 	duration := time.Since(start)
-	fmt.Printf("\n\nExecution time: %s\n", duration)
+	fmt.Printf("\nExecution time: %s\n", duration)
 }

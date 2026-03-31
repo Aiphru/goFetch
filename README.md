@@ -3,7 +3,7 @@
 is an heavily inspired version of FastFetch written in go<br>
 It is my first go project and under development.<br> 
 Tested on WSL2 Debian and Arch<br>
-Currently sitting at around 1ms execution time calculated w time.Since()
+Currently sitting at around 2-3ms execution time on a fresh Deb install calculated w time.Since()
 
 Needs work on: UI :sob:
 
