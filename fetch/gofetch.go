@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var red string = "\033[38;5;161m"
@@ -238,7 +237,6 @@ func getLocale() string {
 }
 
 func Run() {
-	start := time.Now()
 	ascii := getAsciiArt()
 	title := getNameHostName()
 	info := []string{
@@ -275,6 +273,4 @@ func Run() {
 		fmt.Printf("%-*s%s\n", leftWidth, left, right)
 	}
 	fmt.Println("")
-	duration := time.Since(start)
-	fmt.Printf("\nExecution time: %s\n", duration)
 }
