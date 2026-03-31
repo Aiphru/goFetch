@@ -129,7 +129,7 @@ func getRam() string {
 			memTotal, _ = strconv.ParseFloat(memTotalString, 32)
 			memTotal = memTotal / 1024 / 1024
 		}
-		if strings.HasPrefix(line, "MemAvailable:") {
+		if strings.HasPrefix(line, "MemFree:") {
 			memFreeString := replacer.Replace(line)
 			memFree, _ = strconv.ParseFloat(memFreeString, 32)
 			memFree = memFree / 1024 / 1024
