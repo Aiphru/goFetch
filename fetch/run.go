@@ -26,7 +26,7 @@ func displayLine(title string, value string) {
 }
 
 func formatLine(title string, value string) string {
-	spaces := 10 - len(title)
+	spaces := 8 - len(title)
 	printSpace := ""
 	for i := 0; i < spaces; i++ {
 		printSpace = printSpace + " "
